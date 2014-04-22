@@ -1,0 +1,36 @@
+{
+  "name": "nails-model",
+  "version": "0.0.1",
+  "description": "Models for nails-framework",
+  "main": "index.js",
+  "dependencies": {
+    "modella": "~0.2.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nails/nails-model"
+  },
+  "keywords": [
+    "nails",
+    "nails-framework",
+    "nails-plugin",
+    "nailsplugin",
+    "model",
+    "orm",
+    "odm",
+    "modella",
+    "mongo",
+    "mongodb",
+    "sql"
+  ],
+  "author": "James Wyse <james@jameswyse.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nails/nails-model/issues"
+  },
+  "homepage": "https://github.com/nails/nails-model"
+}
