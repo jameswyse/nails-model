@@ -1,10 +1,16 @@
 {
   "name": "nails-model",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Models for nails-framework",
   "main": "index.js",
   "dependencies": {
-    "modella": "~0.2.8"
+    "modella": "~0.2.8",
+    "modella-friendly-errors": "^0.1.1",
+    "modella-slug": "^0.3.1",
+    "modella-filter": "^0.1.0",
+    "modella-validators": "^0.1.0",
+    "modella-auth": "0.0.2",
+    "modella-timestamps": "^0.1.1"
   },
   "devDependencies": {},
   "scripts": {

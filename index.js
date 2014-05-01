@@ -1,4 +1,4 @@
-var model = require('./lib/Model');
+var model = require('./lib/model');
 
 //
 // # getOrCreateModel
@@ -17,60 +17,82 @@ function getOrCreateModel(name) {
 // ## getOrCreatePlugin
 // *Create or retrieve a modella plugin*
 //
+// `options` is optional
+//
 // ### Examples:
 // ```javascript
-// // Register the 'modella-mongo' plugin as 'mongo'
-// plugin('mongo', require('modella-mongo'));
+// // Register the 'modella-mongo' plugin as 'mongo' with options
+// plugin('mongo', {
+//   module: require('modella-mongo'),
+//   options: 'localhost/db'
+// });
 //
 // // Or, shorthand:
-// plugin('mongo', 'modella-mongo');
+// plugin('mongo', {
+//   module: 'modella-mongo',
+//   options: 'localhost/db'
+// });
 //
-// // Or, even shorter by using the module name:
+// // Or using the module name without options:
 // plugin('modella-mongo');
 //
 // // Access the 'mongo' plugin:
 // var mongo = plugin('mongo');
 //```
 //
-function getOrCreatePlugin(name, definition) {
-  var app = this;
-  var is  = app.utils.is;
+function getOrCreatePlugin(name, options) {
+  var app      = this;
+  var defaults = app.utils.defaults;
+  var is       = app.utils.is;
 
-  // [if]   Name is registered and plugin isn't provided.
-  // [then] Return the plugin directly.
-  if(name && app._modelPlugins[name] && !definition) {
+  if(!name) throw new Error('Missing model plugin name');
+
+  var registered = is.string(name) && app._modelPlugins[name];
+
+  // Plugin is registered
+  // -> return the plugin
+  if(registered && !options) {
     return app._modelPlugins[name];
   }
 
-  // [if]   Both name and a definition object/function are provided.
-  // [then] Register the definition and return `this` for chaining.
-  if(name && definition && (is.object(definition) || is.fn(definition))) {
-    app._modelPlugins[name] = definition;
-
-    return this;
+  // Plugin is registered and options were passed
+  // -> invoke plugin with options and return
+  if(registered && options) {
+    return app._modelPlugins[name](options);
   }
 
-  // [if]   Name is a string but isn't registered and definition isn't provided
-  // [then] Require and register the definition and return `this` for chaining
-  if(is.string(name) && !app._modelPlugins[name] && !definition) {
-    definition = app.requireFn(name);
-    if(definition) app._modelPlugins[name] = definition;
+  // Model isn't registered
+  if(!registered) {
 
-    return this;
+    // Set default options
+    options = defaults({
+      module: name
+    }, options || {});
+
+    // module is a string
+    // -> require it
+    if(is.string(options.module)) {
+      options.module = app.requireFn(options.module);
+    }
+
+    // module isn't a Function
+    // -> throw an Error
+    if(!is.fn(options.module)) {
+      throw new Error('Plugin invalid or not found: ' + name);
+    }
+
+    // module is a function and options were passed
+    // -> invoke plugin with options
+    else if(options.options) {
+      options.module = options.module(options.options);
+    }
+
+    // Register the plugin
+    app._modelPlugins[name] = options.module;
+
+    // Return the plugin
+    return app._modelPlugins[name];
   }
-
-  // [if]   Name is a string but isn't registered and definition is a string
-  // [then] Require the definition and register it using name.
-  //        Returns `this` for chaining.
-  if(is.string(name) && !app._modelPlugins[name] && is.string(definition)) {
-    definition = app.requireFn(definition);
-    if(definition) app._modelPlugins[name] = definition;
-
-    return this;
-  }
-
-  // [else] Can't find the plugin, sorry pal.
-  throw new Error('Plugin not found: ' + name);
 }
 
 //
@@ -86,10 +108,58 @@ exports.name = 'model';
 exports.type = 'integration';
 
 exports.register = function(app, options, next) {
+  var is            = app.utils.is;
+
   app._models       = {};
   app._modelPlugins = {};
   app.model         = getOrCreateModel.bind(app);
   app.model.plugin  = getOrCreatePlugin.bind(app);
+
+  // Define common plugins
+  var common = {
+    'validation': {
+      module: require('modella-validators')
+    },
+    'slug': {
+      module: require('modella-slug')
+    },
+    'timestamps': {
+      module: require('modella-timestamps')
+    },
+    'friendly-errors': {
+      module: require('modella-friendly-errors')
+    },
+    'auth': {
+      module: require('modella-auth')
+    },
+    'filter': {
+      module: require('modella-filter')
+    }
+  };
+
+  // Register common plugins
+  Object.keys(common).forEach(function(name) {
+    app.model.plugin(name, common[name]);
+  });
+
+
+  // Register user plugins
+  if(options && options.plugins) {
+
+    var plugs = options.plugins;
+
+    if(is.array(plugs)) {
+      plugs.forEach(function(plug) {
+        app.model.plugin(plug);
+      });
+    }
+    else if(is.object(plugs)) {
+      Object.keys(plugs).forEach(function(name) {
+        app.model.plugin(name, plugs[name]);
+      });
+    }
+
+  }
 
   next();
 };
